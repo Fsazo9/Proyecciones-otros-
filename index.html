@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculador de Sondas - Emsa Drilling</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+
+    <style>
+        :root {
+            --primary: #0f172a;
+            --secondary: #334155;
+            --accent: #10b981;
+            --bg-page: #e2e8f0;
+            --white: #ffffff;
+            --border: #cbd5e1;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-page);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--secondary);
+        }
+
+        .app-container {
+            background-color: var(--white);
+            width: 100%;
+            max-width: 900px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header { background-color: var(--primary); color: var(--white); padding: 25px 30px; text-align: center; }
+        .header h1 { font-size: 24px; font-weight: 700; margin-bottom: 5px; }
+        .header p { color: #94a3b8; font-size: 14px; }
+
+        .info-alert { background-color: #f0fdf4; border-left: 4px solid var(--accent); padding: 15px 20px; margin: 20px 30px 0 30px; border-radius: 4px; font-size: 14px; color: #166534; display: flex; gap: 10px; }
+        .info-alert i { margin-top: 3px; font-size: 16px; }
+
+        .calculator-grid { display: grid; grid-template-columns: 320px 1fr; padding: 30px; gap: 30px; }
+        @media (max-width: 768px) { .calculator-grid { grid-template-columns: 1fr; } }
+
+        .controls { display: flex; flex-direction: column; gap: 20px; }
+        .input-group { display: flex; flex-direction: column; gap: 8px; }
+        .input-group label { font-size: 13px; font-weight: 600; color: var(--secondary); text-transform: uppercase; }
+        .input-group input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
+        .input-group input:focus { outline: none; border-color: var(--accent); }
+        .input-group input[type="file"] { padding: 8px; background: #f8fafc; }
+
+        .btn-calculate { background-color: var(--accent); color: var(--white); border: none; padding: 14px; border-radius: 6px; font-weight: 600; font-size: 15px; cursor: pointer; display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
+        .btn-calculate:hover { background-color: #059669; }
+
+        .results-panel { background-color: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 25px; min-height: 300px; }
+        #output-console { height: 100%; display: flex; flex-direction: column; justify-content: center; }
+        .empty-state { text-align: center; color: #94a3b8; }
+        .empty-state i { font-size: 40px; margin-bottom: 15px; color: #cbd5e1; }
+
+        .res-title { color: var(--primary); font-size: 18px; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+        .res-box { background: var(--white); border-left: 4px solid var(--accent); padding: 15px; border-radius: 4px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .res-value { font-size: 28px; font-weight: 700; color: var(--primary); margin: 5px 0; }
+        .res-text { font-size: 14px; color: #64748b; }
+        .error-text { color: #dc2626; font-weight: 500; background: #fef2f2; padding: 10px; border-radius: 4px; border-left: 4px solid #dc2626;}
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <div class="header">
+            <h1>Calculador de Sondas de Perforación</h1>
+            <p>Se calculará avance como HASTA - DESDE</p>
+        </div>
+
+        <div class="info-alert">
+            <i class="fa-solid fa-circle-info"></i>
+            <div>
+                <strong>Importante:</strong> Debe subir un archivo de <strong>Emsa Drilling</strong> con la hoja <em>"Perforación"</em> (o "Perforacion").
+            </div>
+        </div>
+
+        <div class="calculator-grid">
+            <div class="controls">
+                <div class="input-group">
+                    <label>Archivo Excel (.xlsx)</label>
+                    <input type="file" id="file-upload" accept=".xlsx">
+                </div>
+                
+                <div class="input-group">
+                    <label>Metros Objetivo</label>
+                    <input type="number" id="target-meters" value="10000">
+                </div>
+
+                <div class="input-group">
+                    <label>Cantidad de Pozos</label>
+                    <input type="number" id="target-pozos" value="10">
+                </div>
+                
+                <div class="input-group">
+                    <label>Plazo (Meses)</label>
+                    <input type="number" id="target-months" value="2">
+                </div>
+
+                <button class="btn-calculate" id="run-btn">
+                    <i class="fa-solid fa-calculator"></i> Calcular Sondas
+                </button>
+            </div>
+
+            <div class="results-panel">
+                <div id="output-console">
+                    <div class="empty-state">
+                        <i class="fa-solid fa-chart-bar"></i>
+                        <p>Cargue el archivo y presione Calcular.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <py-config>
+        packages = ["pandas", "openpyxl", "numpy"]
+    </py-config>
+
+    <script type="py">
+    import pandas as pd
+    import numpy as np
+    from math import ceil
+    from pyodide.ffi import create_proxy
+    from js import document, Uint8Array
+
+    def _norm(s):
+        return str(s).strip().upper() if s is not None else ""
+
+    def _pick_sheet(xls, candidates):
+        for s in candidates:
+            if s in xls.sheet_names:
+                return s
+        return None
+
+    def _resolve_col(df, candidates):
+        header_map = {_norm(c): c for c in df.columns}
+        for cand in candidates:
+            if _norm(cand) in header_map:
+                return header_map[_norm(cand)]
+        return None
+
+    def _to_float_series(s):
+        if pd.api.types.is_numeric_dtype(s):
+            return pd.to_numeric(s, errors='coerce')
+            
+        s = (s.astype(str)
+               .str.replace(u'\xa0','', regex=False)
+               .str.replace("'",  '', regex=False)
+               .str.replace(' ',  '', regex=False)
+               .str.replace('.',  '', regex=False)
+               .str.replace(',', '.', regex=False))
+        return pd.to_numeric(s, errors='coerce')
+
+    async def process_calculation(event):
+        output_div = document.getElementById("output-console")
+        output_div.innerHTML = "<div class='empty-state'><i class='fa-solid fa-spinner fa-spin'></i><p>Procesando archivo...</p></div>"
+        
+        file_input = document.getElementById("file-upload")
+        if not file_input.files.length:
+            output_div.innerHTML = "<p class='error-text'>⚠️ Primero debes subir un archivo.</p>"
+            return
+
+        try:
+            metros = float(document.getElementById("target-meters").value)
+            pozos  = float(document.getElementById("target-pozos").value)
+            meses  = float(document.getElementById("target-months").value)
+        except:
+            output_div.innerHTML = "<p class='error-text'>❌ Error en los valores de entrada.</p>"
+            return
+
+        file = file_input.files.item(0)
+        array_buffer = await file.arrayBuffer()
+        data = Uint8Array.new(array_buffer).to_bytes()
+        
+        try:
+            from io import BytesIO
+            content = BytesIO(data)
+            
+            try:
+                xls = pd.ExcelFile(content)
+            except Exception as e:
+                output_div.innerHTML = f"<p class='error-text'>❌ No se pudo abrir el archivo como Excel: {str(e)}</p>"
+                return
+            
+            sheet_perfo = _pick_sheet(xls, ["Perforación", "Perforacion"])
+            if sheet_perfo is None:
+                output_div.innerHTML = f"<p class='error-text'>❌ No se encontro la hoja 'Perforación' o 'Perforacion' en el archivo.<br>Hojas disponibles: {xls.sheet_names}</p>"
+                return
+
+            try:
+                df = pd.read_excel(xls, sheet_name=sheet_perfo)
+            except Exception as e:
+                output_div.innerHTML = f"<p class='error-text'>❌ Error leyendo la hoja seleccionada: {str(e)}</p>"
+                return
+
+            df.columns = df.columns.str.strip()
+            df = df.loc[:, ~df.columns.duplicated()]
+            
+            col_equipo = _resolve_col(df, ["EQUIPO", "Equipo", "TEAM"])
+            col_fecha  = _resolve_col(df, ["FECHA", "Fecha", "FECHA REGISTRO", "DATE"])
+            col_desde  = _resolve_col(df, ["DESDE", "Desde", "FROM"])
+            col_hasta  = _resolve_col(df, ["HASTA", "Hasta", "TO"])
+
+            if not all([col_equipo, col_fecha, col_desde, col_hasta]):
+                output_div.innerHTML = f"<p class='error-text'>❌ El archivo debe contener columnas equivalentes a: EQUIPO, FECHA, DESDE, HASTA<br>Detectadas: {list(df.columns)}</p>"
+                return
+
+            df['_FECHA']  = pd.to_datetime(df[col_fecha], errors='coerce')
+            df['_EQUIPO'] = df[col_equipo].astype(str).str.strip()
+            df['_DESDE']  = _to_float_series(df[col_desde])
+            df['_HASTA']  = _to_float_series(df[col_hasta])
+
+            df['AVANCE'] = df['_HASTA'] - df['_DESDE']
+            df = df.dropna(subset=['_FECHA', '_EQUIPO', 'AVANCE'])
+            df = df[df['AVANCE'] > 0]
+
+            if df.empty:
+                output_div.innerHTML = "<p class='error-text'>❌ No hay registros validos de avance (HASTA - DESDE > 0) tras limpiar los datos.</p>"
+                return
+
+            avance_dia = df.groupby(['_EQUIPO', '_FECHA'])['AVANCE'].sum().reset_index()
+            rendimiento_por_equipo = avance_dia.groupby('_EQUIPO')['AVANCE'].mean()
+            
+            if rendimiento_por_equipo.empty or rendimiento_por_equipo.mean() <= 0:
+                output_div.innerHTML = "<p class='error-text'>❌ No se pudo calcular un rendimiento valido. Revisa los datos de avance.</p>"
+                return
+
+            rendimiento_promedio = rendimiento_por_equipo.mean()
+            dias = meses * 30
+            
+            if rendimiento_promedio <= 0:
+                output_div.innerHTML = "<p class='error-text'>❌ El rendimiento promedio no puede ser 0.</p>"
+                return
+
+            sondas_necesarias = ceil(metros / (rendimiento_promedio * dias))
+
+            html_res = f"""
+                <div style="display: flex; flex-direction: column; height: 100%;">
+                    <h3 class="res-title">Resultados del Calculo</h3>
+                    
+                    <div class="res-box">
+                        <p class="res-text">✅ Rendimiento promedio por sonda:</p>
+                        <p class="res-value">{rendimiento_promedio:.2f} <span style="font-size: 16px; color: #64748b; font-weight: normal;">metros por dia</span></p>
+                    </div>
+
+                    <div class="res-box" style="border-left-color: #3b82f6;">
+                        <p class="res-text">📌 Para perforar {metros} metros en {meses} meses (~{int(dias)} dias):</p>
+                        <p class="res-value">🔧 {sondas_necesarias}</p>
+                        <p class="res-text" style="margin-top: 5px;">Necesitas al menos {sondas_necesarias} sondas operando continuamente.</p>
+                    </div>
+                </div>
+            """
+            output_div.innerHTML = html_res
+
+        except Exception as e:
+            output_div.innerHTML = f"<p class='error-text'>❌ Error critico: {str(e)}</p>"
+
+    run_proxy = create_proxy(process_calculation)
+    document.getElementById("run-btn").addEventListener("click", run_proxy)
+    </script>
+
+</body>
+</html>
